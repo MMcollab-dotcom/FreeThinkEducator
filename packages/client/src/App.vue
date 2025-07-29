@@ -164,8 +164,8 @@ function wiggle(val: number) {
   return val + Math.random() * val - val / 2
 }
 
-// const url = 'https://thought-canvas-worker.vercel.app/api/handler'
-const url = 'http://localhost:3000/api/handler'
+// const url = 'free-think-educator-ovgsq8iq6-maomaos-projects-9ea2e78d.vercel.app'
+const url = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/handler'
 // logStreamedText(url, '100 words about love')
 function createQuestions(statementNode: Node, questionStump: string | undefined = undefined) {
   if (statementNode.nodeType === 'start' && statementNode.body == '') return
