@@ -1,0 +1,6 @@
+packages/worker/node_modules/
+packages/worker/node_modules/*
+**/node_modules/*
+*.env
+**/*.DS_Store
+credentials/
