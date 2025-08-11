@@ -4,6 +4,8 @@ import {
   ReconnectInterval,
 } from "eventsource-parser";
 
+import { hardcoded_handler } from "./hardcoded_handler";
+
 export type ChatGPTAgent = "user" | "system";
 
 export interface ChatGPTMessage {
@@ -143,4 +145,4 @@ const handler = async (req: Request): Promise<Response> => {
   return res;
 };
 
-export default (handler);
+export default ( hardcoded_handler );
