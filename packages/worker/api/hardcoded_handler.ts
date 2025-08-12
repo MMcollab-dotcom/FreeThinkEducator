@@ -1,11 +1,17 @@
 // Predefined texts to stream
 const predefinedTexts = [
     ["User Profile:",
-    "-Profession: Biologist",
-    "-Skills: Biology, Statistics",
-    "-Focus: Deep learning for time-series medical data"],
-    [ "LSTM",
-      "RNN" ]
+    "\n-Profession: Biologist",
+    "\n-Skills: Biology, Statistics",
+    "\n-Focus: Deep learning for time-series medical data",
+    "\nDo you wanna know more about time series deep learning models?"],
+    [ "- LSTM\n- RNN\n- Transformer" ],
+    [ "LSTM is a blablabla" ],
+    [ "- Hello" ],
+    [ "RNN is a blablabla"],
+    [""],
+    [ "LSTM is a mathematica"],
+    [""]
 ];
 
 export const hardcoded_handler = async (req: Request): Promise<Response> => {
@@ -17,14 +23,14 @@ export const hardcoded_handler = async (req: Request): Promise<Response> => {
     const encoder = new TextEncoder();
     let index = 0;
     const global_index = parseInt(prompt.split(' ')[0], 10);
-    console.log( prompt )
+
     const stream = new ReadableStream({
       async start(controller) {
         let answer = predefinedTexts[global_index]
 
         while (index < answer.length) {
           const text = answer[index];
-          const queue = encoder.encode(`${text}\n\n`);
+          const queue = encoder.encode(`${text}`);
           controller.enqueue(queue);
           index++;
           // Simulate delay for streaming effect

@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import { reactive, ref } from 'vue'
 // @ts-ignore
 import { v4 } from 'uuid'
-const activateQuestionSuggestion = false
+const activateQuestionSuggestion = true
 interface Node {
   x: number
   y: number
@@ -187,7 +187,7 @@ function createQuestions(statementNode: Node, questionStump: string | undefined 
     id: v4(),
     body: '',
     bodyCompleted: false,
-    questions: []
+    questions: [] as string[]
   })
 
   insertNode(node)
@@ -215,6 +215,23 @@ function createQuestions(statementNode: Node, questionStump: string | undefined 
     },
     () => {
       node.bodyCompleted = true
+
+      if (!activateQuestionSuggestion) return
+
+      // Generate questions
+
+      let questions = ''
+
+      logStreamedText(
+        url,
+        `STATEMENT_START\n${node.body}\nSTATEMENT_END\nCreate a list of three inspirational questions for this statement. Questions must be formulated short and precise using only few words.`,
+        (delta) => {
+          questions += delta
+          node.questions = parseMarkdownList(questions)
+        },
+        () => {
+        }
+      )
     }
   )
 }
@@ -334,6 +351,7 @@ function createAnswers(questionNode: Node) {
     `QUESTION_START\n${questionNode.body}\nQUESTION_END\nEXISTING_ANSWERS_START${existingAnswers}EXISTING_ANSWERS_END\nCreate an informative and precise answer about the the content in between QUESTION_START and QUESTION_END. The answer must be concise and inspirational and open possibilities for further discussions. DO NOT raise questions back in the end!`,
     (delta) => {
       node.body += delta
+      console.log(node.body)
     },
     () => {
       node.bodyCompleted = true
@@ -519,7 +537,7 @@ function createPointedQuestion(node: Node, question?: string) {
             "
           />
           <div v-else>
-            <div>{{ node.body }}</div>
+            <div style="white-space: pre-wrap">{{ node.body }}</div>
             <!-- Add input field for answer nodes -->
             <div class="flex mt-4 w-full flex-wrap gap-2" v-if="(node.questions ?? []).length > 0">
               <button
@@ -531,7 +549,7 @@ function createPointedQuestion(node: Node, question?: string) {
                 {{ item }}
               </button>
             </div>
-            <div class="flex mt-4 w-full flex-wrap gap-2" v-if="node.nodeType === 'answer' && (node.questions ?? []).length > 0">
+            <div class="flex mt-4 w-full flex-wrap gap-2" v-if="node.nodeType != 'start' && (node.questions ?? []).length > 0">
               <input
                 class="bg-gray-200 rounded-md px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
                 v-model="node.customQuestion"
