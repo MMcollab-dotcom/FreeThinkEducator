@@ -1,16 +1,20 @@
+// Predefined texts to stream
+const predefinedTexts = [
+    [
+    "User Profile:\n",
+    "-Profession: Biologist\n",
+    "-Skills: Biology, Statistics\n",
+    "-Focus: Deep learning for time-series medical data"],
+];
+
+let global_index = 0
+
 export const hardcoded_handler = async (req: Request): Promise<Response> => {
     const { prompt } = (await req.json()) as { prompt?: string };
   
     if (!prompt) {
       return new Response("No prompt in the request", { status: 400 });
     }
-  
-    // Predefined texts to stream
-    const predefinedTexts = [
-      "Hello, this is a predefined response.",
-      "Streaming the next part now.",
-      "This is the final chunk of text.",
-    ];
   
     const encoder = new TextEncoder();
     let index = 0;
