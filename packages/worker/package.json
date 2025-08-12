@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
     "@vercel/node": "^2.10.2",
     "eventsource-parser": "^1.0.0",
     "openai": "^3.2.1"

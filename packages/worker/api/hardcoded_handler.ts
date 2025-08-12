@@ -1,13 +1,12 @@
 // Predefined texts to stream
 const predefinedTexts = [
-    [
-    "User Profile:\n",
-    "-Profession: Biologist\n",
-    "-Skills: Biology, Statistics\n",
+    ["User Profile:",
+    "-Profession: Biologist",
+    "-Skills: Biology, Statistics",
     "-Focus: Deep learning for time-series medical data"],
+    [ "LSTM",
+      "RNN" ]
 ];
-
-let global_index = 0
 
 export const hardcoded_handler = async (req: Request): Promise<Response> => {
     const { prompt } = (await req.json()) as { prompt?: string };
@@ -15,21 +14,22 @@ export const hardcoded_handler = async (req: Request): Promise<Response> => {
     if (!prompt) {
       return new Response("No prompt in the request", { status: 400 });
     }
-  
     const encoder = new TextEncoder();
     let index = 0;
-  
+    const global_index = parseInt(prompt.split(' ')[0], 10);
+    console.log( prompt )
     const stream = new ReadableStream({
       async start(controller) {
-        while (index < predefinedTexts.length) {
-          const text = predefinedTexts[index];
-          const queue = encoder.encode(`data: ${text}\n\n`);
+        let answer = predefinedTexts[global_index]
+
+        while (index < answer.length) {
+          const text = answer[index];
+          const queue = encoder.encode(`${text}\n\n`);
           controller.enqueue(queue);
           index++;
           // Simulate delay for streaming effect
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       },
     });

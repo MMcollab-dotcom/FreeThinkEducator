@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import { reactive, ref } from 'vue'
 // @ts-ignore
 import { v4 } from 'uuid'
-const activateQuestionSuggestion = true
+const activateQuestionSuggestion = false
 interface Node {
   x: number
   y: number
@@ -113,6 +113,8 @@ function dragEnd() {
   dragElement = null
 }
 
+const global_idx = ref(0)
+
 async function logStreamedText(
   url: string,
   prompt: string,
@@ -120,6 +122,7 @@ async function logStreamedText(
   doneHandler: () => void
 ): Promise<void> {
   try {
+    prompt = `${global_idx.value} ` + prompt
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -128,6 +131,8 @@ async function logStreamedText(
       },
       body: JSON.stringify({ prompt }) // Add the JSON body
     })
+
+    global_idx.value += 1
 
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`)
