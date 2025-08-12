@@ -40,8 +40,8 @@ const nodes: Node[] = reactive([
     fy: null,
     nodeType: 'start',
     id: 'id1',
-    body: '',
-    bodyCompleted: false,
+    body: 'Hi, what do you want to think about today?',
+    bodyCompleted: true,
     questions: []
   }
 ])
@@ -123,38 +123,48 @@ async function logStreamedText(
 ): Promise<void> {
   try {
     prompt = `${global_idx.value} ` + prompt
+    console.log('=== Frontend API Call ===')
+    console.log('logStreamedText called with URL:', url, 'prompt:', prompt)
+    console.log('global_idx.value:', global_idx.value)
     global_idx.value += 1
+    
+    console.log('Making fetch request...')
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        // 'Accept': 'text/plain',
-        // 'Content-Type': 'application/json', // Add the content type header
+        'Accept': 'text/plain',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }) // Add the JSON body
+      body: JSON.stringify({ prompt })
     })
 
+    console.log('Fetch response:', response)
     if (!response.ok) {
+      console.error(`HTTP error: ${response.status}`)
       throw new Error(`HTTP error: ${response.status}`)
     }
 
     const reader = response.body?.getReader()
 
     if (!reader) {
+      console.error('No ReadableStream found in the response')
       throw new Error('No ReadableStream found in the response')
     }
 
     const decoder = new TextDecoder('utf-8')
+    console.log('Starting to read stream...')
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const { value, done } = await reader.read()
 
       if (done) {
+        console.log('Stream finished')
         break
       }
 
       const chunk = decoder.decode(value, { stream: true })
-      console.log( chunk )
+      console.log('Received chunk:', chunk)
       deltaHandler(chunk)
     }
   } catch (error: any) {
@@ -170,7 +180,8 @@ function wiggle(val: number) {
 }
 
 // const url = 'free-think-educator-ovgsq8iq6-maomaos-projects-9ea2e78d.vercel.app'
-const url = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/handler'
+const url = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/hardcoded_handler'
+console.log('Using API URL:', url)
 // logStreamedText(url, '100 words about love')
 function createQuestions(statementNode: Node, questionStump: string | undefined = undefined) {
   if (statementNode.nodeType === 'start' && statementNode.body == '') return
@@ -317,6 +328,8 @@ function parseMarkdownList(markdownList: string): string[] {
 
 
 function createAnswers(questionNode: Node) {
+  console.log('=== createAnswers called ===')
+  console.log('createAnswers called for node:', questionNode.nodeType, 'body:', questionNode.body)
   const force = getForceForNextNode(questionNode)
   const node = reactive({
     x: wiggle(questionNode.x) + force.vx,
@@ -377,9 +390,13 @@ function createAnswers(questionNode: Node) {
 }
 
 function handleGenerationInvocation(node: Node) {
+  console.log('=== Double-click detected ===')
+  console.log('handleGenerationInvocation called for node:', node.nodeType, 'body:', node.body)
   if (node.nodeType === 'question' || node.nodeType === 'start') {
+    console.log('Node type is question/start - calling createAnswers')
     createAnswers(node)
   } else {
+    console.log('Node type is other - calling createQuestions')
     createQuestions(node)
   }
 }

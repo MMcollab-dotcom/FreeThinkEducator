@@ -92,12 +92,34 @@ export const config = {
   runtime: "edge",
 };
 
-const allowCors = fn => async (req, res) => {
+// CORS helper for Edge Runtime (not Node.js style)
+const allowCors = (fn: (req: Request) => Promise<Response>) => async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    res.status(200).end()
-    return
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
-  return await fn(req, res)
+
+  // Execute the handler and add CORS headers to response
+  const response = await fn(req);
+  
+  // Add CORS headers to the response
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('Access-Control-Allow-Origin', '*');
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
 }
 
 const handler = async (req: Request): Promise<Response> => {

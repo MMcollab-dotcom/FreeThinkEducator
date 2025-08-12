@@ -1,4 +1,10 @@
-// Predefined texts to stream
+import express from 'express';
+import cors from 'cors';
+
+const app = express();
+const port = 3001;
+
+// Predefined texts to stream (copied from hardcoded_handler.ts)
 const predefinedTexts = [
     ["User profile:",
     "\n-Skills: Biology, Statistics",
@@ -26,7 +32,6 @@ const predefinedTexts = [
         "\n- Model accountability: What are laws on liability of model output?",
         "\n- Data security: How to encrypt the data securely?"
     ],
-    [""],
     ["User profile:",
     "\n-Updated location: Germany",
     "\n-Skills: Biology, Statistics, Python",
@@ -41,42 +46,61 @@ const predefinedTexts = [
     ],
 ];
 
-export const hardcoded_handler = async (req: Request): Promise<Response> => {
-    const { prompt } = (await req.json()) as { prompt?: string };
-  
-    if (!prompt) {
-      return new Response("No prompt in the request", { status: 400 });
-    }
-    const encoder = new TextEncoder();
-    let index = 0;
-    const global_index = parseInt(prompt.split(' ')[0], 10);
-    console.log( prompt )
-    const stream = new ReadableStream({
-      async start(controller) {
-        let answer = predefinedTexts[global_index]
+// Enable CORS for all routes
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5175'], // Allow requests from both possible frontend ports
+  credentials: true
+}));
 
-        while (index < answer.length) {
-          const text = answer[index];
-          const queue = encoder.encode(`${text}`);
-          controller.enqueue(queue);
-          index++;
-          // Simulate delay for streaming effect
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        controller.close();
-      },
-    });
-  
-    const res = new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-        "Access-Control-Allow-Headers":
-          "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-      },
-    });
-  
-    return res;
-};
+app.use(express.json());
+
+// Route for hardcoded handler
+app.post('/api/hardcoded_handler', async (req, res) => {
+  try {
+    console.log('=== API Call Received ===');
+    console.log('Request body:', req.body);
+    console.log('Request origin:', req.headers.origin);
+    
+    const { prompt } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).send("No prompt in the request");
+    }
+    
+    console.log('Received prompt:', prompt);
+    
+    const global_index = parseInt(prompt.split(' ')[0], 10);
+    let index = 0;
+    const answer = predefinedTexts[global_index] || predefinedTexts[0];
+    
+    console.log('Using predefined text index:', global_index, 'Answer:', answer);
+    
+    // Set streaming headers
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+    
+    // Stream the response
+    const streamText = async () => {
+      for (const text of answer) {
+        res.write(text);
+        console.log('Streaming:', text);
+        // Simulate delay for streaming effect
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      res.end();
+    };
+    
+    await streamText();
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});

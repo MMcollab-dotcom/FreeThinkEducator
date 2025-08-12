@@ -4,3 +4,4 @@ packages/worker/node_modules/*
 *.env
 **/*.DS_Store
 credentials/
+.vercel
