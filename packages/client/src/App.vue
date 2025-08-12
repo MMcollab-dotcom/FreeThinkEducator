@@ -123,6 +123,7 @@ async function logStreamedText(
 ): Promise<void> {
   try {
     prompt = `${global_idx.value} ` + prompt
+    global_idx.value += 1
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -131,8 +132,6 @@ async function logStreamedText(
       },
       body: JSON.stringify({ prompt }) // Add the JSON body
     })
-
-    global_idx.value += 1
 
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`)
@@ -155,6 +154,7 @@ async function logStreamedText(
       }
 
       const chunk = decoder.decode(value, { stream: true })
+      console.log( chunk )
       deltaHandler(chunk)
     }
   } catch (error: any) {
