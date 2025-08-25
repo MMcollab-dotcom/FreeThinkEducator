@@ -4,6 +4,18 @@ import { reactive, ref } from 'vue'
 // @ts-ignore
 import { v4 } from 'uuid'
 const activateQuestionSuggestion = true
+
+// Function to clean body text for display (removes BUTTON: and SPECIAL: prefixes)
+function cleanBodyForDisplay(body: string): string {
+  return body.split('\n')
+    .filter(line => {
+      const trimmedLine = line.trim()
+      // Filter out lines that start with BUTTON: or SPECIAL: - these should only appear as buttons
+      return !trimmedLine.startsWith('BUTTON:') && !trimmedLine.startsWith('SPECIAL:')
+    })
+    .join('\n')
+}
+
 interface Node {
   x: number
   y: number
@@ -123,14 +135,19 @@ async function logStreamedText(
 ): Promise<void> {
   try {
     prompt = `${global_idx.value} ` + prompt
+    console.log('=== Frontend API Call ===')
+    console.log('Original prompt:', prompt)
+    console.log('Global index:', global_idx.value)
     global_idx.value += 1
+    console.log('Making fetch request to:', url)
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        // 'Accept': 'text/plain',
-        // 'Content-Type': 'application/json', // Add the content type header
+        'Accept': 'text/plain',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }) // Add the JSON body
+      body: JSON.stringify({ prompt })
     })
 
     if (!response.ok) {
@@ -170,7 +187,8 @@ function wiggle(val: number) {
 }
 
 // const url = 'free-think-educator-ovgsq8iq6-maomaos-projects-9ea2e78d.vercel.app'
-const url = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/handler'
+const url = 'http://localhost:3001/api/hardcoded_handler' // Force local server
+console.log('Using API URL:', url)
 // logStreamedText(url, '100 words about love')
 function createQuestions(statementNode: Node, questionStump: string | undefined = undefined) {
   if (statementNode.nodeType === 'start' && statementNode.body == '') return
@@ -215,6 +233,36 @@ function createQuestions(statementNode: Node, questionStump: string | undefined 
     },
     () => {
       node.bodyCompleted = true
+
+      // Parse the body content for buttons with prefix system
+      console.log('=== PARSING BODY FOR BUTTONS (createQuestions) ===')
+      console.log('Body content:', node.body)
+      const bodyLines = node.body.split('\n')
+      console.log('Body lines:', bodyLines)
+      
+      const buttons: string[] = []
+      
+      for (const line of bodyLines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine.startsWith('BUTTON:')) {
+          // Grey button
+          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          if (buttonText) {
+            buttons.push(buttonText)
+            console.log('Found grey button:', buttonText)
+          }
+        } else if (trimmedLine.startsWith('SPECIAL:')) {
+          // Yellow special button  
+          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          if (buttonText) {
+            buttons.push('SPECIAL:' + buttonText)
+            console.log('Found special button:', buttonText)
+          }
+        }
+      }
+      
+      console.log('All buttons found:', buttons)
+      node.questions = buttons
 
       if (!activateQuestionSuggestion) return
 
@@ -348,15 +396,52 @@ function createAnswers(questionNode: Node) {
 
   logStreamedText(
     url,
-    `QUESTION_START\n${questionNode.body}\nQUESTION_END\nEXISTING_ANSWERS_START${existingAnswers}EXISTING_ANSWERS_END\nCreate an informative and precise answer about the the content in between QUESTION_START and QUESTION_END. The answer must be concise and inspirational and open possibilities for further discussions. DO NOT raise questions back in the end!`,
+    questionNode.nodeType === 'start' ? 
+      '' : 
+      `QUESTION_START\n${questionNode.body}\nQUESTION_END\nEXISTING_ANSWERS_START${existingAnswers}EXISTING_ANSWERS_END\nCreate an informative and precise answer about the the content in between QUESTION_START and QUESTION_END. The answer must be concise and inspirational and open possibilities for further discussions. DO NOT raise questions back in the end!`,
     (delta) => {
       node.body += delta
       console.log(node.body)
     },
     () => {
+      console.log('=== COMPLETION HANDLER CALLED (createAnswers) ===');
+      console.log('Final node.body:', node.body);
       node.bodyCompleted = true
 
-      if (!activateQuestionSuggestion) return
+      // Parse the body content for buttons with prefix system
+      console.log('=== PARSING BODY FOR BUTTONS (createAnswers) ===')
+      console.log('Body content:', node.body)
+      const bodyLines = node.body.split('\n')
+      console.log('Body lines:', bodyLines)
+      
+      const buttons: string[] = []
+      
+      for (const line of bodyLines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine.startsWith('BUTTON:')) {
+          // Grey button
+          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          if (buttonText) {
+            buttons.push(buttonText)
+            console.log('Found grey button:', buttonText)
+          }
+        } else if (trimmedLine.startsWith('SPECIAL:')) {
+          // Yellow special button  
+          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          if (buttonText) {
+            buttons.push('SPECIAL:' + buttonText)
+            console.log('Found special button:', buttonText)
+          }
+        }
+      }
+      
+      console.log('All buttons found:', buttons)
+      node.questions = buttons
+
+      // Check if this is hardcoded content (has prefixed buttons) - skip AI generation for hardcoded content
+      const hasHardcodedContent = buttons.length > 0
+
+      if (!activateQuestionSuggestion || hasHardcodedContent) return
 
       // Generate questions
 
@@ -377,9 +462,20 @@ function createAnswers(questionNode: Node) {
 }
 
 function handleGenerationInvocation(node: Node) {
-  if (node.nodeType === 'question' || node.nodeType === 'start') {
+  console.log('=== handleGenerationInvocation called ===')
+  console.log('Node type:', node.nodeType, 'Body:', node.body)
+  
+  if (node.nodeType === 'start') {
+    console.log('Start node - using hardcoded content')
     createAnswers(node)
+  } else if (node.nodeType === 'question') {
+    console.log('Calling createAnswers')
+    createAnswers(node)
+  } else if (node.nodeType === 'special') {
+    console.log('Special node - no generation needed')
+    // Special nodes use hardcoded content, no generation needed
   } else {
+    console.log('Calling createQuestions') 
     createQuestions(node)
   }
 }
@@ -467,7 +563,193 @@ function resetSubtree(node: Node) {
 
 function createPointedQuestion(node: Node, question?: string) {
   let q = question ?? '';
+  
+  // Check if this is a special hardcoded button (starts with SPECIAL:)
+  if (q.startsWith('SPECIAL:')) {
+    const specialKey = q.replace('SPECIAL:', '');
+    createSpecialContent(node, specialKey);
+    return;
+  }
+  
+  // Check if this is a regular button from hardcoded content that should navigate to a predefined response
+  const predefinedButtons = [
+    "RNN: recurrent neural networks",
+    "LSTM: long short-term memory networks", 
+    "Transformers: attention-based models",
+    "Need help choosing?",
+    "More details",
+    "Send reply"  
+  ];
+  
+  if (predefinedButtons.includes(q)) {
+    createHardcodedResponse(node, q);
+    return;
+  }
+  
   createQuestions(node, q.includes('Free Thinker') ? undefined : question)
+}
+
+function createSpecialContent(parentNode: Node, specialKey: string) {
+  const force = getForceForNextNode(parentNode)
+  const node = reactive({
+    x: wiggle(parentNode.x) + force.vx,
+    y: wiggle(parentNode.y) + force.vy,
+    vx: 0,
+    vy: 0,
+    index: currNodeIndex++,
+    fx: null,
+    fy: null,
+    nodeType: 'special',
+    id: v4(),
+    body: '',
+    bodyCompleted: false,
+    questions: [] as string[]
+  })
+
+  insertNode(node)
+  insertLink({ id: 'l1', index: currLinkIndex++, source: parentNode, target: node })
+
+  // Request specific hardcoded content
+  logStreamedText(
+    url,
+    `SPECIAL_CONTENT_REQUEST:${specialKey}`,
+    (delta) => {
+      node.body += delta
+    },
+    () => {
+      // Parse the body content for buttons with prefix system
+      console.log('=== PARSING BODY FOR BUTTONS (createSpecialContent) ===')
+      console.log('Body content:', node.body)
+      const bodyLines = node.body.split('\n')
+      console.log('Body lines:', bodyLines)
+      
+      const buttons: string[] = []
+      
+      for (const line of bodyLines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine.startsWith('BUTTON:')) {
+          // Grey button
+          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          if (buttonText) {
+            buttons.push(buttonText)
+            console.log('Found grey button:', buttonText)
+          }
+        } else if (trimmedLine.startsWith('SPECIAL:')) {
+          // Yellow special button  
+          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          if (buttonText) {
+            buttons.push('SPECIAL:' + buttonText)
+            console.log('Found special button:', buttonText)
+          }
+        }
+      }
+      
+      console.log('All buttons found:', buttons)
+      node.questions = buttons
+      node.bodyCompleted = true
+    }
+  )
+}
+
+function createHardcodedResponse(parentNode: Node, buttonText: string) {
+  const force = getForceForNextNode(parentNode)
+  const node = reactive({
+    x: wiggle(parentNode.x) + force.vx,
+    y: wiggle(parentNode.y) + force.vy,
+    vx: 0,
+    vy: 0,
+    index: currNodeIndex++,
+    fx: null,
+    fy: null,
+    nodeType: 'answer',
+    id: v4(),
+    body: '',
+    bodyCompleted: false,
+    questions: [] as string[]
+  })
+
+  insertNode(node)
+  insertLink({ id: 'l1', index: currLinkIndex++, source: parentNode, target: node })
+
+  console.log('=== FRONTEND BUTTON NAVIGATION DEBUG ===');
+  console.log('Button clicked:', buttonText);
+
+  // Request predefined response for this button
+  logStreamedText(
+    url,
+    `BUTTON_NAVIGATION:${buttonText}`,
+    (delta) => {
+      node.body += delta
+    },
+    () => {
+      console.log('=== FRONTEND COMPLETION DEBUG ===');
+      console.log('Final body:', node.body);
+      
+      // Parse the completed content for buttons with prefix system
+      const content = node.body;
+      console.log('Parsing content for buttons:', content);
+      
+      // Split content into lines and look for buttons with prefixes
+      const lines = content.split('\n');
+      const buttons: string[] = [];
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine.startsWith('BUTTON:')) {
+          // Grey button
+          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          if (buttonText) {
+            buttons.push(buttonText)
+            console.log('Found grey button:', buttonText)
+          }
+        } else if (trimmedLine.startsWith('SPECIAL:')) {
+          // Yellow special button  
+          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          if (buttonText) {
+            buttons.push('SPECIAL:' + buttonText)
+            console.log('Found special button:', buttonText)
+          }
+        }
+      }
+      
+      console.log('All buttons found:', buttons);
+      node.questions = buttons;
+      node.bodyCompleted = true
+    }
+  )
+}
+
+function createSpecialNode(parentNode: Node) {
+  const force = getForceForNextNode(parentNode)
+  const node = reactive({
+    x: wiggle(parentNode.x) + force.vx,
+    y: wiggle(parentNode.y) + force.vy,
+    vx: 0,
+    vy: 0,
+    index: currNodeIndex++,
+    fx: null,
+    fy: null,
+    nodeType: 'special',
+    id: v4(),
+    body: '',
+    bodyCompleted: false,
+    questions: [] as string[]
+  })
+
+  insertNode(node)
+  insertLink({ id: 'l1', index: currLinkIndex++, source: parentNode, target: node })
+
+  // Use hardcoded content with a special marker for the backend
+  logStreamedText(
+    url,
+    `SPECIAL_NODE_REQUEST`,
+    (delta) => {
+      node.body += delta
+    },
+    () => {
+      node.bodyCompleted = true
+    }
+  )
 }
 
 </script>
@@ -513,16 +795,16 @@ function createPointedQuestion(node: Node, question?: string) {
             'select-none': dragElement !== null,
             'bg-blue-200/100 ring-blue-300 text-blue-900': node.nodeType === 'question',
             'bg-white ring-gray-200 text-black': node.nodeType === 'answer',
-            'w-96 bg-purple-200 ring-purple-300  ': node.nodeType === 'start',
+            'bg-yellow-200 ring-yellow-300 text-yellow-900': node.nodeType === 'special',
+            'w-[380px] bg-purple-200 ring-purple-300  ': node.nodeType === 'start',
             'font-medium text-purple-900': node.nodeType === 'start' && node.body !== ''
           }"
           :style="{ transform: `translate(calc(${node.x}px - 50%), calc(${node.y}px - 50%))` }"
         >
-          <input
-            class="w-full bg-inherit text-inherit placeholder-purple-500 focus:outline-none"
+          <textarea
+            class="w-full bg-inherit text-inherit placeholder-purple-500 focus:outline-none resize-none min-h-[70px]"
             v-if="node.nodeType === 'start'"
             v-model="node.body"
-            type="text"
             placeholder="Enter a topic and questions to challenge the AI."
             @keydown="node.bodyCompleted = false"
             @keyup.enter="
@@ -537,24 +819,27 @@ function createPointedQuestion(node: Node, question?: string) {
             "
           />
           <div v-else>
-            <div style="white-space: pre-wrap">{{ node.body }}</div>
+            <div style="white-space: pre-wrap">{{ cleanBodyForDisplay(node.body) }}</div>
             <!-- Add input field for answer nodes -->
             <div class="flex mt-4 w-full flex-wrap gap-2" v-if="(node.questions ?? []).length > 0">
               <button
                 @click.stop="createPointedQuestion(node, item)"
-                class="bg-gray-200 rounded-md px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
-                v-for="item in [...(node.questions ?? []), 'Free Thinker 🪄']"
+                :class="item.startsWith('SPECIAL:') ? 
+                  'bg-yellow-300 rounded-md px-2 py-1 text-yellow-800 text-xs hover:bg-yellow-400 font-semibold' : 
+                  'bg-gray-200 rounded-md px-2 py-1 text-gray-600 text-xs hover:bg-gray-300'"
+                v-for="item in (node.questions ?? [])"
                 :key="item"
               >
-                {{ item }}
+                {{ item.startsWith('SPECIAL:') ? item.replace('SPECIAL:', '⭐ ') : item }}
               </button>
             </div>
-            <div class="flex mt-4 w-full flex-wrap gap-2" v-if="node.nodeType != 'start' && (node.questions ?? []).length > 0">
+            <!-- User input box for all non-start nodes -->
+            <div class="flex mt-4 w-full flex-wrap gap-2" v-if="node.nodeType != 'start'">
               <input
-                class="bg-gray-200 rounded-md px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
+                class="bg-gray-200 rounded-md px-2 py-1 text-gray-600 text-xs hover:bg-gray-300 flex-1"
                 v-model="node.customQuestion"
                 type="text"
-                placeholder="Or your custom question"
+                placeholder="User input"
                 @keyup.enter="
                   createPointedQuestion(node, node.customQuestion);
                   node.customQuestion = ''
