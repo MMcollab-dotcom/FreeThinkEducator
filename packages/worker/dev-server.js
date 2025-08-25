@@ -17,10 +17,10 @@ const predefinedTexts = [
     // ],
     [
         "Based on your input, the following models could be suitable for time series data:",
-        "BUTTON:RNN: recurrent neural networks",
-        "BUTTON:LSTM: long short-term memory networks", 
-        "BUTTON:Transformers: attention-based models",
-        "BUTTON:Need help choosing?",
+        "BUTTON:RNN: recurrent neural networks       ",
+        "BUTTON:LSTM: long short-term memory networks      ", 
+        "BUTTON:Transformers: attention-based models     ",
+        "BUTTON:Continue conversation",
         "SPECIAL:USER PROFILE"
     ],
     [
@@ -42,37 +42,47 @@ const predefinedTexts = [
         "Details on LSTMs:\n\nLong Short-Term Memory networks solve the vanishing gradient problem.\n\nKey components:\n• Forget gate: decides what to discard\n• Input gate: controls new information\n• Output gate: determines output\n\nBest for:\n• Medium-length sequences\n• Time series with long-term patterns\n• Text processing tasks"
     ],
     [
-        "To better answer your question, please provide more context:\n\n• What type of data are you working with?\n• What is your target variable?\n• How long are your sequences?\n• What computational resources do you have?",
+        "To better answer your question, please provide more context:\n\n• What amount of data are you working with?\n• How much compute is available?\n• What coding skills do you have?",
         "BUTTON:Send reply"
     ],
     [
-      "Based on your input, the most suitable model for your time series data is likely the LSTM, as it handles medium-length sequences and long-term dependencies well. Here is a link to a Python library for its implementation: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html",
-      "SPECIAL:USER PROFILE1"
+      "Based on your input, the most suitable model for your time series data is likely the LSTM, as it handles medium-length sequences and long-term dependencies well. Here is a link to a Python library for its implementation: https://pytorch.org/docs/stable",
+      "\n/generated/torch.nn.LSTM.html",
+      "SPECIAL:USER PROFILE ",
+      "BUTTON:Send reply "
+    ],
+    [
+      "Based on your request, here are the German privacy laws for medical data processing:\n\n1. Bundesdatenschutzgesetz (BDSG): The Federal Data Protection Act regulates the processing of personal data in Germany.\n2. Datenschutz-Grundverordnung (DSGVO): The General Data Protection Regulation applies to all EU member states, including Germany, and sets strict rules for data protection.\n3. Sozialgesetzbuch (SGB): The Social Code contains specific provisions for health data and medical records.\n4. Telemediengesetz (TMG): Governs electronic information and communication services, including health-related websites.\n\nFor more detailed information, consult a legal expert specializing in German data protection law.",
+      "SPECIAL:USER PROFILE  "
     ]
-];
+  ];
 
 // Mapping from button text to predefined response indices
 const buttonToIndexMap = {
   // From index 0 model options - each leads to their specific description
-  "RNN: recurrent neural networks": 1,
-  "LSTM: long short-term memory networks": 2,
-  "Transformers: attention-based models": 3,
-  "Need help choosing?": 6, // Goes to context questions
+  "RNN: recurrent neural networks       ": 1,
+  "LSTM: long short-term memory networks      ": 2,
+  "Transformers: attention-based models     ": 3,
+  "Continue conversation": 6, // Goes to context questions
   
   // From detail pages - for now, just cycle through details
   "More details": 4, // Goes to RNN details by default
   
   // From context questions
   "Send reply": 7, // Goes to LSTM recommendation
+  "Send reply ": 8 // Goes to new answer on german laws (with 1 trailing space)
 };
 
 // Special content for SPECIAL: prefixed buttons
 const specialContentMap = {
   "USER PROFILE": [
-    "User Profile:\n\nPreferred Learning Style: In-depth understanding for target\n\nCurrent Skills:\n• Biology\n• Statistics\n\nWeaknesses:\n• Deep Learning\n• Neural Network Implementation\n\nLearning Target:\n• Deep learning for sequential medical data\n• Time series analysis in healthcare\n\nRecommended Path:\n• Start with basic neural networks\n• Progress to RNNs and LSTMs\n• Apply to medical time series data"    
+    "User Profile:\n\nPreferred Learning Style: In-depth understanding for target\n\nCurrent Skills:\n• Biology\n• Statistics\n\nWeaknesses:\n• Deep Learning\n• Neural Network Implementation\n\nLearning Target:\n• Deep learning for sequential medical data"    
   ],
-  "USER PROFILE1": [
-    "Updated User Profile:\n\nNew Skill Added: Python programming\n\nCurrent Skills:\n• Biology\n• Statistics\n• Python programming\n\nWeaknesses:\n• Deep Learning\n• Neural Network Implementation\n\nLearning Target:\n• Deep learning for sequential medical data\n• Time series analysis in healthcare\n\nNext Steps:\n• Implement basic neural networks in Python\n• Learn PyTorch or TensorFlow\n• Practice with medical datasets"
+  "USER PROFILE ": [
+    "Updated User Profile:\n\nNew Skill Added: Python programming\n\nCurrent Skills:\n• Biology\n• Statistics\n• Python programming\n\nWeaknesses:\n• Deep Learning\n• Neural Network Implementation\n\nLearning Target:\n• Deep learning for sequential medical data"
+  ],
+  "USER PROFILE  ": [
+      "Updated User Profile:\n\nNew Interest Added: German data privacy law for medical data.\n\nCurrent Skills:\n• Biology\n• Statistics\n• Python programming\n\nWeaknesses:\n• Deep Learning\n\nLearning Target:\n• Deep learning for sequential medical data with interest in German legal aspects for it."
   ]
 };
 
@@ -142,16 +152,46 @@ app.post('/api/hardcoded_handler', async (req, res) => {
     
     console.log('Using answer:', answer);
     
-    // Stream the response with proper line separators
+    // Stream the response with proper line separators and realistic typing delay
     const streamText = async () => {
       for (let i = 0; i < answer.length; i++) {
         const text = answer[i];
         // Add newline before each element except the first one
-        const chunk = i === 0 ? text : '\n' + text;
-        res.write(chunk);
-        console.log('Streaming:', chunk);
-        // Simulate delay for streaming effect
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        const fullChunk = i === 0 ? text : '\n' + text;
+        
+        // Stream word by word for more realistic typing effect
+        const words = fullChunk.split(' ');
+        
+        for (let j = 0; j < words.length; j++) {
+          const word = words[j];
+          const isLastWord = j === words.length - 1;
+          const wordToSend = isLastWord ? word : word + ' '; // Add space after word unless it's the last one
+          
+          res.write(wordToSend);
+          console.log('Streaming word:', wordToSend);
+          
+          // Skip delays for button/special lines - stream them instantly
+          const isButtonLine = fullChunk.includes('BUTTON:') || fullChunk.includes('SPECIAL:');
+          if (isButtonLine) {
+            continue; // No delay for button/special content
+          }
+          
+          // Variable delay based on word characteristics for realistic typing
+          let delay;
+          if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
+            delay = 400; // Longer pause after sentences
+          } else if (word.endsWith(',') || word.endsWith(';') || word.endsWith(':')) {
+            delay = 200; // Medium pause after punctuation
+          } else if (word.includes('\n')) {
+            delay = 300; // Pause for line breaks
+          } else if (word.length > 8) {
+            delay = 150; // Slightly longer for longer words
+          } else {
+            delay = 80 + Math.random() * 40; // 80-120ms for regular words with randomness
+          }
+          
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
       }
       res.end();
     };

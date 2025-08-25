@@ -9,7 +9,7 @@ const activateQuestionSuggestion = true
 function cleanBodyForDisplay(body: string): string {
   return body.split('\n')
     .filter(line => {
-      const trimmedLine = line.trim()
+      const trimmedLine = line //.trim()
       // Filter out lines that start with BUTTON: or SPECIAL: - these should only appear as buttons
       return !trimmedLine.startsWith('BUTTON:') && !trimmedLine.startsWith('SPECIAL:')
     })
@@ -243,17 +243,17 @@ function createQuestions(statementNode: Node, questionStump: string | undefined 
       const buttons: string[] = []
       
       for (const line of bodyLines) {
-        const trimmedLine = line.trim()
+        const trimmedLine = line //.trim()
         if (trimmedLine.startsWith('BUTTON:')) {
           // Grey button
-          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          const buttonText = trimmedLine.replace('BUTTON:', '')
           if (buttonText) {
             buttons.push(buttonText)
             console.log('Found grey button:', buttonText)
           }
         } else if (trimmedLine.startsWith('SPECIAL:')) {
           // Yellow special button  
-          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          const buttonText = trimmedLine.replace('SPECIAL:', '')
           if (buttonText) {
             buttons.push('SPECIAL:' + buttonText)
             console.log('Found special button:', buttonText)
@@ -352,7 +352,7 @@ function parseMarkdownList(markdownList: string): string[] {
       }
       listItem = match[2];
     } else if (listItem !== null) {
-      listItem += ' ' + line.trim();
+      listItem += ' ' + line //.trim();
     }
   }
 
@@ -417,17 +417,17 @@ function createAnswers(questionNode: Node) {
       const buttons: string[] = []
       
       for (const line of bodyLines) {
-        const trimmedLine = line.trim()
+        const trimmedLine = line //.trim()
         if (trimmedLine.startsWith('BUTTON:')) {
           // Grey button
-          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          const buttonText = trimmedLine.replace('BUTTON:', '')
           if (buttonText) {
             buttons.push(buttonText)
             console.log('Found grey button:', buttonText)
           }
         } else if (trimmedLine.startsWith('SPECIAL:')) {
           // Yellow special button  
-          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          const buttonText = trimmedLine.replace('SPECIAL:', '')
           if (buttonText) {
             buttons.push('SPECIAL:' + buttonText)
             console.log('Found special button:', buttonText)
@@ -573,12 +573,13 @@ function createPointedQuestion(node: Node, question?: string) {
   
   // Check if this is a regular button from hardcoded content that should navigate to a predefined response
   const predefinedButtons = [
-    "RNN: recurrent neural networks",
-    "LSTM: long short-term memory networks", 
-    "Transformers: attention-based models",
-    "Need help choosing?",
+    "RNN: recurrent neural networks       ",
+    "LSTM: long short-term memory networks      ", 
+    "Transformers: attention-based models     ",
+    "Continue conversation",
     "More details",
-    "Send reply"  
+    "Send reply",
+    "Send reply "
   ];
   
   if (predefinedButtons.includes(q)) {
@@ -626,17 +627,17 @@ function createSpecialContent(parentNode: Node, specialKey: string) {
       const buttons: string[] = []
       
       for (const line of bodyLines) {
-        const trimmedLine = line.trim()
+        const trimmedLine = line //.trim()
         if (trimmedLine.startsWith('BUTTON:')) {
           // Grey button
-          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          const buttonText = trimmedLine.replace('BUTTON:', '')
           if (buttonText) {
             buttons.push(buttonText)
             console.log('Found grey button:', buttonText)
           }
         } else if (trimmedLine.startsWith('SPECIAL:')) {
           // Yellow special button  
-          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          const buttonText = trimmedLine.replace('SPECIAL:', '')
           if (buttonText) {
             buttons.push('SPECIAL:' + buttonText)
             console.log('Found special button:', buttonText)
@@ -694,17 +695,17 @@ function createHardcodedResponse(parentNode: Node, buttonText: string) {
       const buttons: string[] = [];
       
       for (const line of lines) {
-        const trimmedLine = line.trim()
+        const trimmedLine = line //.trim()
         if (trimmedLine.startsWith('BUTTON:')) {
           // Grey button
-          const buttonText = trimmedLine.replace('BUTTON:', '').trim()
+          const buttonText = trimmedLine.replace('BUTTON:', '')
           if (buttonText) {
             buttons.push(buttonText)
             console.log('Found grey button:', buttonText)
           }
         } else if (trimmedLine.startsWith('SPECIAL:')) {
           // Yellow special button  
-          const buttonText = trimmedLine.replace('SPECIAL:', '').trim()
+          const buttonText = trimmedLine.replace('SPECIAL:', '')
           if (buttonText) {
             buttons.push('SPECIAL:' + buttonText)
             console.log('Found special button:', buttonText)
@@ -830,7 +831,7 @@ function createSpecialNode(parentNode: Node) {
                 v-for="item in (node.questions ?? [])"
                 :key="item"
               >
-                {{ item.startsWith('SPECIAL:') ? item.replace('SPECIAL:', '⭐ ') : item }}
+                {{ item.startsWith('SPECIAL:') ? item.replace('SPECIAL:', '') : item }}
               </button>
             </div>
             <!-- User input box for all non-start nodes -->
